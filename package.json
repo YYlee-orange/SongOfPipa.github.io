@@ -1,0 +1,22 @@
+{
+  "name": "song-of-pipa",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "test:rig": "node --test tests/playerRig.test.ts",
+    "test:movement": "node --test tests/playerMovement.test.ts",
+    "test:combat": "node --test tests/playerDamage.test.ts tests/playerParry.test.ts tests/playerAbility.test.ts tests/collision.test.ts tests/prototypeBullet.test.ts tests/prototypeBoss.test.ts tests/ultimateVolley.test.ts"
+  },
+  "dependencies": {
+    "phaser": "4.2.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.0",
+    "vite": "^7.0.0"
+  }
+}
