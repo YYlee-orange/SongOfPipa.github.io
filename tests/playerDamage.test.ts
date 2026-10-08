@@ -54,3 +54,14 @@ test("third accepted hit defeats the player and reset restores all state", () =>
   assert.equal(snapshot.invulnerable, false);
   assert.equal(snapshot.defeated, false);
 });
+
+test("a heavy direct hit removes two health in one accepted damage event", () => {
+  const player = new PlayerDamageModel(config);
+  assert.equal(player.tryTakeDamage(2), "damaged");
+  assert.equal(player.getSnapshot().health, 1);
+  assert.equal(player.getSnapshot().invulnerable, true);
+
+  player.update(1);
+  assert.equal(player.tryTakeDamage(2), "defeated");
+  assert.equal(player.getSnapshot().health, 0);
+});

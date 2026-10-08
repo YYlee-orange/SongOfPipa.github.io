@@ -47,6 +47,9 @@ jobs:
       - name: Test combat
         run: npm run test:combat
 
+      - name: Test complete Demo
+        run: npm run test:demo
+
       - name: Build production site
         run: npm run build
 

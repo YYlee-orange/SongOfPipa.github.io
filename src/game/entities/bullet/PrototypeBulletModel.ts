@@ -170,20 +170,23 @@ export class PrototypeBulletModel {
         continue;
       }
 
-      for (let targetIndex = 0; targetIndex < targets.length; targetIndex += 1) {
-        const target = targets[targetIndex];
-
-        if (
-          bullet.movementSegments.some((segment) =>
-            sweptCircleIntersectsCircle(
-              segment.start,
-              segment.end,
-              bullet.radius,
-              target,
-            ),
-          )
-        ) {
-          return { bulletId: bullet.id, targetIndex };
+      for (const segment of bullet.movementSegments) {
+        let earliestTargetIndex: number | null = null;
+        let earliestTime = Number.POSITIVE_INFINITY;
+        for (let targetIndex = 0; targetIndex < targets.length; targetIndex += 1) {
+          const collision = sweptCircleCollision(
+            segment.start,
+            segment.end,
+            bullet.radius,
+            targets[targetIndex],
+          );
+          if (collision && collision.time < earliestTime) {
+            earliestTime = collision.time;
+            earliestTargetIndex = targetIndex;
+          }
+        }
+        if (earliestTargetIndex !== null) {
+          return { bulletId: bullet.id, targetIndex: earliestTargetIndex };
         }
       }
     }

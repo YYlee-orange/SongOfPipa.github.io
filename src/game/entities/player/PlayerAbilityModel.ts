@@ -30,7 +30,6 @@ export type AbilityFeedback =
 export interface PlayerAbilityUpdateEvents {
   ultimateStarted: boolean;
   volleyRequested: boolean;
-  damageRequested: boolean;
 }
 
 export interface PlayerAbilitySnapshot {
@@ -73,7 +72,6 @@ export class PlayerAbilityModel {
     const events: PlayerAbilityUpdateEvents = {
       ultimateStarted: false,
       volleyRequested: false,
-      damageRequested: false,
     };
 
     this.boostRemaining = Math.max(0, this.boostRemaining - safeDelta);
@@ -114,7 +112,6 @@ export class PlayerAbilityModel {
       if (this.ultimateRemaining === 0) {
         this.ultimateState = "recovery";
         this.ultimateRemaining = Math.max(0, this.config.ultimateRecoverySeconds);
-        events.damageRequested = true;
       }
     } else if (this.ultimateState === "recovery") {
       this.ultimateRemaining = Math.max(0, this.ultimateRemaining - safeDelta);
@@ -200,6 +197,16 @@ export class PlayerAbilityModel {
 
   cancelBoost(): void {
     this.cancelForDamage();
+  }
+
+  /** D4 夺械流程开始时清除进行中的技能，但保留现有能量。 */
+  cancelAllForTransition(): void {
+    this.boostRemaining = 0;
+    this.ultimateState = "idle";
+    this.ultimateChargeRemaining = 0;
+    this.ultimateRemaining = 0;
+    this.feedback = "none";
+    this.feedbackRemaining = 0;
   }
 
   getSnapshot(): Readonly<PlayerAbilitySnapshot> {

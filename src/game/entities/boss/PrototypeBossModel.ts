@@ -12,9 +12,17 @@ export interface PrototypeBossPhaseConfig {
   bulletSpeed: number;
 }
 
-export interface PrototypeBossHitZoneConfig {
-  offset: Vec2;
-  radius: number;
+export interface PrototypeBossWanderConfig {
+  radius: Vec2;
+  frequency: Vec2;
+}
+
+export interface PrototypeBossRecoilConfig {
+  impulse: number;
+  maximumVelocity: number;
+  maximumOffset: number;
+  spring: number;
+  damping: number;
 }
 
 export interface PrototypeBossConfig {
@@ -31,9 +39,16 @@ export interface PrototypeBossConfig {
   initialFireDelaySeconds: number;
   specialBulletChance: number;
   randomSeed: number;
-  muzzleOffset: Vec2;
+  headOffset: Vec2;
+  headVisibleRadius: number;
+  headHitRadius: number;
+  headWander: PrototypeBossWanderConfig;
+  weaponOffset: Vec2;
+  minimumHeadWeaponVerticalSeparation: number;
+  weaponMuzzleOffset: Vec2;
+  weaponWander: PrototypeBossWanderConfig;
+  weaponRecoil: PrototypeBossRecoilConfig;
   hitFlashSeconds: number;
-  hitZones: readonly PrototypeBossHitZoneConfig[];
   phases: Readonly<Record<PrototypeBossPhase, PrototypeBossPhaseConfig>>;
 }
 
@@ -46,6 +61,13 @@ export interface PrototypeBossShot {
 
 export interface PrototypeBossSnapshot {
   position: Vec2;
+  headPosition: Vec2;
+  weaponPosition: Vec2;
+  muzzlePosition: Vec2;
+  headWanderOffset: Vec2;
+  weaponWanderOffset: Vec2;
+  weaponRecoilOffset: number;
+  weaponRecoilVelocity: number;
   targetPosition: Vec2;
   velocity: Vec2;
   health: number;
@@ -59,10 +81,23 @@ export interface PrototypeBossSnapshot {
   hitFlashRemaining: number;
 }
 
+interface PrototypeBossPresentationPose {
+  headPosition: Vec2;
+  weaponPosition: Vec2;
+  muzzlePosition: Vec2;
+  headWanderOffset: Vec2;
+  weaponWanderOffset: Vec2;
+}
+
+const TAU = Math.PI * 2;
+const RECOIL_STEP_SECONDS = 1 / 120;
+
 export class PrototypeBossModel {
   private readonly config: PrototypeBossConfig;
   private readonly movementRandom: SeededRandom;
   private readonly shotRandom: SeededRandom;
+  private readonly headWanderPhase: Vec2;
+  private readonly weaponWanderPhase: Vec2;
   private position: Vec2;
   private targetPosition: Vec2;
   private velocity: Vec2 = { x: 0, y: 0 };
@@ -72,6 +107,9 @@ export class PrototypeBossModel {
   private hitFlashRemaining = 0;
   private shotsFired = 0;
   private specialShotsFired = 0;
+  private wanderTime = 0;
+  private weaponRecoilOffset = 0;
+  private weaponRecoilVelocity = 0;
 
   constructor(config: PrototypeBossConfig) {
     this.config = config;
@@ -80,6 +118,18 @@ export class PrototypeBossModel {
     this.fireRemaining = Math.max(0, config.initialFireDelaySeconds);
     this.movementRandom = new SeededRandom(config.randomSeed);
     this.shotRandom = new SeededRandom(config.randomSeed ^ 0x9e3779b9);
+
+    const presentationRandom = new SeededRandom(
+      config.randomSeed ^ 0x51ed270b,
+    );
+    this.headWanderPhase = {
+      x: presentationRandom.range(0, TAU),
+      y: presentationRandom.range(0, TAU),
+    };
+    this.weaponWanderPhase = {
+      x: presentationRandom.range(0, TAU),
+      y: presentationRandom.range(0, TAU),
+    };
     this.targetPosition = this.pickMovementTarget();
   }
 
@@ -88,6 +138,8 @@ export class PrototypeBossModel {
       ? Math.max(0, Math.min(deltaSeconds, 0.25))
       : 0;
     this.hitFlashRemaining = Math.max(0, this.hitFlashRemaining - safeDelta);
+    this.wanderTime += safeDelta;
+    this.updateWeaponRecoil(safeDelta);
 
     if (this.health <= 0) {
       this.velocity = { x: 0, y: 0 };
@@ -112,13 +164,11 @@ export class PrototypeBossModel {
           : "normal";
       shots.push({
         type,
-        origin: {
-          x: this.position.x + this.config.muzzleOffset.x,
-          y: this.position.y + this.config.muzzleOffset.y,
-        },
+        origin: this.getPresentationPose().muzzlePosition,
         speed: phaseConfig.bulletSpeed,
         phase,
       });
+      this.addWeaponRecoilImpulse();
       this.shotsFired += 1;
 
       if (type === "special") {
@@ -158,18 +208,25 @@ export class PrototypeBossModel {
   }
 
   getHitColliders(): readonly CircleCollider[] {
-    return this.config.hitZones.map((zone) => ({
-      center: {
-        x: this.position.x + zone.offset.x,
-        y: this.position.y + zone.offset.y,
+    return [
+      {
+        center: this.getPresentationPose().headPosition,
+        radius: this.config.headHitRadius,
       },
-      radius: zone.radius,
-    }));
+    ];
   }
 
   getSnapshot(): Readonly<PrototypeBossSnapshot> {
+    const pose = this.getPresentationPose();
     return {
       position: { ...this.position },
+      headPosition: pose.headPosition,
+      weaponPosition: pose.weaponPosition,
+      muzzlePosition: pose.muzzlePosition,
+      headWanderOffset: pose.headWanderOffset,
+      weaponWanderOffset: pose.weaponWanderOffset,
+      weaponRecoilOffset: this.weaponRecoilOffset,
+      weaponRecoilVelocity: this.weaponRecoilVelocity,
       targetPosition: { ...this.targetPosition },
       velocity: { ...this.velocity },
       health: this.health,
@@ -234,6 +291,104 @@ export class PrototypeBossModel {
       x: this.position.x + this.velocity.x * deltaSeconds,
       y: this.position.y + this.velocity.y * deltaSeconds,
     });
+  }
+
+  private getPresentationPose(): PrototypeBossPresentationPose {
+    const headWanderOffset = this.getWanderOffset(
+      this.config.headWander,
+      this.headWanderPhase,
+    );
+    const weaponWanderOffset = this.getWanderOffset(
+      this.config.weaponWander,
+      this.weaponWanderPhase,
+    );
+    const headPosition = {
+      x: this.position.x + this.config.headOffset.x + headWanderOffset.x,
+      y: this.position.y + this.config.headOffset.y + headWanderOffset.y,
+    };
+    const unconstrainedWeaponPosition = {
+      x:
+        this.position.x +
+        this.config.weaponOffset.x +
+        weaponWanderOffset.x +
+        this.weaponRecoilOffset,
+      y: this.position.y + this.config.weaponOffset.y + weaponWanderOffset.y,
+    };
+    const weaponPosition = {
+      x: unconstrainedWeaponPosition.x,
+      y: Math.max(
+        unconstrainedWeaponPosition.y,
+        headPosition.y +
+          Math.max(0, this.config.minimumHeadWeaponVerticalSeparation),
+      ),
+    };
+
+    return {
+      headPosition,
+      weaponPosition,
+      muzzlePosition: {
+        x: weaponPosition.x + this.config.weaponMuzzleOffset.x,
+        y: weaponPosition.y + this.config.weaponMuzzleOffset.y,
+      },
+      headWanderOffset,
+      weaponWanderOffset,
+    };
+  }
+
+  private getWanderOffset(
+    config: PrototypeBossWanderConfig,
+    phase: Vec2,
+  ): Vec2 {
+    return {
+      x:
+        Math.sin(this.wanderTime * TAU * config.frequency.x + phase.x) *
+        Math.max(0, config.radius.x),
+      y:
+        Math.sin(this.wanderTime * TAU * config.frequency.y + phase.y) *
+        Math.max(0, config.radius.y),
+    };
+  }
+
+  private addWeaponRecoilImpulse(): void {
+    const recoil = this.config.weaponRecoil;
+    this.weaponRecoilVelocity = Math.min(
+      Math.max(0, recoil.maximumVelocity),
+      this.weaponRecoilVelocity + Math.max(0, recoil.impulse),
+    );
+  }
+
+  private updateWeaponRecoil(deltaSeconds: number): void {
+    const recoil = this.config.weaponRecoil;
+    let remaining = deltaSeconds;
+
+    while (remaining > 0) {
+      const step = Math.min(RECOIL_STEP_SECONDS, remaining);
+      const acceleration =
+        -Math.max(0, recoil.spring) * this.weaponRecoilOffset -
+        Math.max(0, recoil.damping) * this.weaponRecoilVelocity;
+      this.weaponRecoilVelocity += acceleration * step;
+      this.weaponRecoilOffset += this.weaponRecoilVelocity * step;
+
+      if (this.weaponRecoilOffset < 0) {
+        this.weaponRecoilOffset = 0;
+        this.weaponRecoilVelocity = Math.max(0, this.weaponRecoilVelocity);
+      }
+
+      if (this.weaponRecoilOffset > recoil.maximumOffset) {
+        this.weaponRecoilOffset = Math.max(0, recoil.maximumOffset);
+        this.weaponRecoilVelocity = Math.min(0, this.weaponRecoilVelocity);
+      }
+
+      remaining -= step;
+    }
+
+    if (
+      Math.abs(this.weaponRecoilOffset) < 0.001 &&
+      Math.abs(this.weaponRecoilVelocity) < 0.01
+    ) {
+      this.weaponRecoilOffset = 0;
+      this.weaponRecoilVelocity = 0;
+    }
   }
 
   private pickMovementTarget(): Vec2 {

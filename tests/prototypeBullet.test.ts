@@ -208,7 +208,7 @@ test("reflected special bullet mirrors from top and bottom only", () => {
   assert.ok(bounced.velocity.y > 0);
 });
 
-test("ballistic reflected special bullet damages a target on its path", () => {
+test("ballistic reflected special bullet damages the earliest target on its path", () => {
   const bullets = new PrototypeBulletModel(
     createConfig({
       sequence: ["special"],
@@ -225,8 +225,9 @@ test("ballistic reflected special bullet damages a target on its path", () => {
   assert.deepEqual(
     bullets.findReflectedColliderCollision([
       { center: { x: 200, y: 50 }, radius: 10 },
+      { center: { x: 120, y: 50 }, radius: 10 },
     ]),
-    { bulletId: special.id, targetIndex: 0 },
+    { bulletId: special.id, targetIndex: 1 },
   );
   assert.equal(bullets.consumeAsTargetHit(special.id), true);
   assert.equal(bullets.getStats().targetHits, 1);

@@ -14,26 +14,26 @@ export class PlayerStatusHud {
   private readonly defeatTitle: Phaser.GameObjects.Text;
   private readonly restartPrompt: Phaser.GameObjects.Text;
 
-  constructor(scene: Phaser.Scene) {
+  constructor(scene: Phaser.Scene, top = 70) {
     const textStyle: Phaser.Types.GameObjects.Text.TextStyle = {
       color: "#4b2018",
       fontFamily: '"Trebuchet MS", "Microsoft YaHei", sans-serif',
       fontStyle: "bold",
     };
     this.healthText = scene.add
-      .text(30, 70, "", { ...textStyle, fontSize: "25px" })
+      .text(30, top, "", { ...textStyle, fontSize: "25px" })
       .setDepth(900);
     this.stateText = scene.add
-      .text(30, 104, "", { ...textStyle, fontSize: "18px" })
+      .text(30, top + 34, "", { ...textStyle, fontSize: "18px" })
       .setDepth(900);
     this.parryText = scene.add
-      .text(30, 132, "", { ...textStyle, fontSize: "18px" })
+      .text(30, top + 62, "", { ...textStyle, fontSize: "18px" })
       .setDepth(900);
     this.energyText = scene.add
-      .text(30, 160, "", { ...textStyle, fontSize: "19px" })
+      .text(30, top + 90, "", { ...textStyle, fontSize: "19px" })
       .setDepth(900);
     this.boostText = scene.add
-      .text(30, 188, "", { ...textStyle, fontSize: "18px" })
+      .text(30, top + 118, "", { ...textStyle, fontSize: "18px" })
       .setDepth(900);
     this.defeatBackdrop = scene.add
       .rectangle(

@@ -3,8 +3,8 @@ import type { PlayerMovementConfig } from "./entities/player/PlayerMovementModel
 
 export const APP_INFO = Object.freeze({
   title: "琵琶曲",
-  version: "0.9.0-playtest",
-  phase: "原型初期试玩版",
+  version: "1.0.0-rc.1",
+  phase: "Demo 发布候选版",
 });
 
 export const DESIGN = Object.freeze({
@@ -30,16 +30,16 @@ export const DEBUG = Object.freeze({
 });
 
 export const PLAYER_RIG: PlayerRigConfig = Object.freeze({
-  initialPelvis: { x: 420, y: 470 },
+  initialPelvis: { x: 300, y: 470 },
   pelvisSize: { width: 108, height: 76 },
-  headCenterOffset: { x: -95, y: -215 },
+  headCenterOffset: { x: -95, y: -335 },
   headWanderRadius: { x: 32, y: 24 },
   headWanderFrequency: { x: 0.72, y: 0.97 },
   headBounds: {
-    minX: 200,
-    maxX: 520,
-    minY: 170,
-    maxY: 350,
+    minX: 80,
+    maxX: 400,
+    minY: 50,
+    maxY: 230,
   },
   headFollowRate: 7,
   torsoMaximumLength: 1500,
@@ -60,7 +60,7 @@ export const PLAYER_RIG: PlayerRigConfig = Object.freeze({
 export const PLAYER_MOVEMENT: PlayerMovementConfig = Object.freeze({
   bounds: Object.freeze({
     minX: PLAYER_RIG.pelvisSize.width / 2,
-    maxX: DESIGN.width - PLAYER_RIG.pelvisSize.width / 2,
+    maxX: 900,
     minY: PLAYER_RIG.pelvisSize.height / 2,
     maxY: DESIGN.height - PLAYER_RIG.pelvisSize.height / 2,
   }),

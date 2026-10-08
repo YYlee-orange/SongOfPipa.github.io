@@ -51,3 +51,13 @@ test("damage interrupts an active parry into recovery", () => {
   assert.equal(parry.getSnapshot().state, "recovery");
   assert.equal(parry.getSnapshot().feedback, "miss");
 });
+
+test("transition cancellation removes the parry circle without recovery", () => {
+  const parry = new PlayerParryModel(config);
+  parry.tryStart();
+  parry.cancelForTransition();
+  assert.equal(parry.getSnapshot().state, "ready");
+  assert.equal(parry.getSnapshot().feedback, "none");
+  assert.equal(parry.getSnapshot().activeRemaining, 0);
+  assert.equal(parry.getSnapshot().recoveryRemaining, 0);
+});

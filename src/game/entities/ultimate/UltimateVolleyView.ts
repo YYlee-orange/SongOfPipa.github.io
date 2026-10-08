@@ -8,13 +8,22 @@ import type {
   UltimateImpactSnapshot,
   UltimateProjectileSnapshot,
 } from "./UltimateVolleyModel";
+import {
+  calculateLeftFacingArtRotation,
+  DEMO_COMBAT_ART_SIZE,
+  DEMO_COMBAT_ART_TEXTURES,
+  resolveMovementDirection,
+} from "../../demo/combat/demoCombatArtConfig.ts";
 
 export class UltimateVolleyView {
+  private readonly scene: Phaser.Scene;
   private readonly projectileGraphics: Phaser.GameObjects.Graphics;
   private readonly effectGraphics: Phaser.GameObjects.Graphics;
+  private readonly projectileSprites: Phaser.GameObjects.Image[] = [];
   private readonly abilityConfig: PlayerAbilityConfig;
 
   constructor(scene: Phaser.Scene, abilityConfig: PlayerAbilityConfig) {
+    this.scene = scene;
     this.projectileGraphics = scene.add.graphics().setDepth(31);
     this.effectGraphics = scene.add.graphics().setDepth(44);
     this.abilityConfig = abilityConfig;
@@ -29,6 +38,7 @@ export class UltimateVolleyView {
     this.projectileGraphics.clear();
     this.effectGraphics.clear();
 
+    let visibleProjectiles = 0;
     for (const projectile of projectiles) {
       if (projectile.emissionDelayRemaining > 0) {
         continue;
@@ -41,25 +51,27 @@ export class UltimateVolleyView {
         projectile.position.x,
         projectile.position.y,
       );
-      this.projectileGraphics.fillStyle(0xffce55, 1);
-      this.projectileGraphics.fillCircle(
-        projectile.position.x,
-        projectile.position.y,
-        projectile.radius,
-      );
-      this.projectileGraphics.lineStyle(4, 0x7a3f18, 1);
-      this.projectileGraphics.strokeCircle(
-        projectile.position.x,
-        projectile.position.y,
-        projectile.radius,
-      );
-      this.projectileGraphics.fillStyle(0xfff5c4, 1);
-      this.projectileGraphics.fillCircle(
-        projectile.position.x - projectile.radius * 0.25,
-        projectile.position.y - projectile.radius * 0.25,
-        4,
-      );
+      if (this.scene.textures.exists(DEMO_COMBAT_ART_TEXTURES.playerBullet.key)) {
+        const sprite = this.getProjectileSprite(visibleProjectiles);
+        const direction = resolveMovementDirection(
+          projectile.position,
+          projectile.previousPosition,
+          projectile.velocity,
+        );
+        sprite
+          .setPosition(projectile.position.x, projectile.position.y)
+          .setDisplaySize(
+            projectile.radius * DEMO_COMBAT_ART_SIZE.bulletLengthPerRadius,
+            projectile.radius * DEMO_COMBAT_ART_SIZE.bulletHeightPerRadius,
+          )
+          .setRotation(calculateLeftFacingArtRotation(direction))
+          .setVisible(true);
+        visibleProjectiles += 1;
+      } else {
+        this.drawFallbackProjectile(projectile);
+      }
     }
+    this.hideProjectileSprites(visibleProjectiles);
 
     for (const impact of impacts) {
       const progress = Phaser.Math.Clamp(impact.progress, 0, 1);
@@ -128,5 +140,46 @@ export class UltimateVolleyView {
       this.effectGraphics.lineStyle(5, 0x62d4c7, 0.35);
       this.effectGraphics.strokeCircle(center.x, center.y, 72);
     }
+  }
+
+  private getProjectileSprite(index: number): Phaser.GameObjects.Image {
+    let sprite = this.projectileSprites[index];
+    if (!sprite) {
+      sprite = this.scene.add
+        .image(0, 0, DEMO_COMBAT_ART_TEXTURES.playerBullet.key)
+        .setDepth(32)
+        .setVisible(false);
+      this.projectileSprites[index] = sprite;
+    }
+    return sprite;
+  }
+
+  private hideProjectileSprites(firstHiddenIndex: number): void {
+    for (let index = firstHiddenIndex; index < this.projectileSprites.length; index += 1) {
+      this.projectileSprites[index].setVisible(false);
+    }
+  }
+
+  private drawFallbackProjectile(
+    projectile: Readonly<UltimateProjectileSnapshot>,
+  ): void {
+    this.projectileGraphics.fillStyle(0xffce55, 1);
+    this.projectileGraphics.fillCircle(
+      projectile.position.x,
+      projectile.position.y,
+      projectile.radius,
+    );
+    this.projectileGraphics.lineStyle(4, 0x7a3f18, 1);
+    this.projectileGraphics.strokeCircle(
+      projectile.position.x,
+      projectile.position.y,
+      projectile.radius,
+    );
+    this.projectileGraphics.fillStyle(0xfff5c4, 1);
+    this.projectileGraphics.fillCircle(
+      projectile.position.x - projectile.radius * 0.25,
+      projectile.position.y - projectile.radius * 0.25,
+      4,
+    );
   }
 }

@@ -87,7 +87,6 @@ test("holding at full energy starts the ultimate and requests one volley", () =>
   const start = ability.update(1.01, true);
   assert.equal(start.ultimateStarted, true);
   assert.equal(start.volleyRequested, false);
-  assert.equal(start.damageRequested, false);
   assert.equal(ability.getSnapshot().energy, 0);
   assert.equal(ability.getSnapshot().ultimateState, "absorbing");
   assert.equal(ability.getSnapshot().ultimateInvulnerable, true);
@@ -98,9 +97,8 @@ test("holding at full energy starts the ultimate and requests one volley", () =>
   assert.equal(ability.getSnapshot().ultimateState, "firing");
   ability.update(1);
   ability.update(1);
-  const impact = ability.update(0.91);
-  assert.equal(impact.volleyRequested, false);
-  assert.equal(impact.damageRequested, true);
+  const recovery = ability.update(0.91);
+  assert.equal(recovery.volleyRequested, false);
   assert.equal(ability.getSnapshot().ultimateState, "recovery");
   ability.update(0.76);
   assert.equal(ability.getSnapshot().ultimateState, "idle");
@@ -116,4 +114,19 @@ test("damage cancels full-energy charging before energy is consumed", () => {
   ability.cancelForDamage();
   assert.equal(ability.getSnapshot().ultimateState, "idle");
   assert.equal(ability.getSnapshot().energy, 10);
+});
+
+test("D4 transition cancellation preserves energy while clearing every active ability", () => {
+  const ability = new PlayerAbilityModel(config);
+  ability.gainEnergy(config.maximumEnergy);
+  ability.beginSkillPress();
+  ability.update(config.ultimateChargeSeconds / 4, true);
+  assert.equal(ability.getSnapshot().chargeProtectionActive, true);
+
+  ability.cancelAllForTransition();
+  const snapshot = ability.getSnapshot();
+  assert.equal(snapshot.energy, config.maximumEnergy);
+  assert.equal(snapshot.boosted, false);
+  assert.equal(snapshot.ultimateState, "idle");
+  assert.equal(snapshot.ultimateInvulnerable, false);
 });

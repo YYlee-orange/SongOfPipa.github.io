@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { COLORS, DESIGN } from "./config";
 import { BootScene } from "./scenes/BootScene";
+import { DemoBattleScene } from "./scenes/DemoBattleScene";
 import { PrototypeScene } from "./scenes/PrototypeScene";
 
 export function createGame(parent: string): Phaser.Game {
@@ -10,7 +11,11 @@ export function createGame(parent: string): Phaser.Game {
     width: DESIGN.width,
     height: DESIGN.height,
     backgroundColor: COLORS.page,
-    scene: [BootScene, PrototypeScene],
+    scene: [
+      BootScene,
+      PrototypeScene,
+      DemoBattleScene,
+    ],
     scale: {
       mode: Phaser.Scale.FIT,
       autoCenter: Phaser.Scale.CENTER_BOTH,

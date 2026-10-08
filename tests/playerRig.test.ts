@@ -11,10 +11,10 @@ import {
 const config: PlayerRigConfig = {
   initialPelvis: { x: 420, y: 470 },
   pelvisSize: { width: 108, height: 76 },
-  headCenterOffset: { x: -95, y: -215 },
+  headCenterOffset: { x: -95, y: -335 },
   headWanderRadius: { x: 32, y: 24 },
   headWanderFrequency: { x: 0.72, y: 0.97 },
-  headBounds: { minX: 200, maxX: 520, minY: 170, maxY: 350 },
+  headBounds: { minX: 200, maxX: 520, minY: 50, maxY: 230 },
   headFollowRate: 7,
   torsoMaximumLength: 1500,
   torsoReferenceLength: 235,

@@ -36,12 +36,17 @@ export class PlayerDamageModel {
     );
   }
 
-  tryTakeDamage(): DamageResult {
-    if (this.defeated || this.invulnerabilityRemaining > 0) {
+  tryTakeDamage(amount = 1): DamageResult {
+    if (
+      this.defeated ||
+      this.invulnerabilityRemaining > 0 ||
+      !Number.isFinite(amount) ||
+      amount <= 0
+    ) {
       return "ignored";
     }
 
-    this.health = Math.max(0, this.health - 1);
+    this.health = Math.max(0, this.health - Math.max(1, Math.round(amount)));
 
     if (this.health === 0) {
       this.defeated = true;

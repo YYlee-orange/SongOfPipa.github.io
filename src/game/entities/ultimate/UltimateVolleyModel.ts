@@ -2,6 +2,7 @@ import { SeededRandom } from "../../systems/SeededRandom.ts";
 import {
   sweptCircleCollision,
   type CircleCollider,
+  type SweptCircleCollision,
 } from "../../systems/CollisionSystem.ts";
 import type { Vec2 } from "../playerRig/PlayerRigModel";
 
@@ -13,10 +14,7 @@ export interface UltimateVolleyConfig {
   projectileSpeed: number;
   projectileRadius: number;
   maximumSpreadRadians: number;
-  baseProjectileCount: number;
-  maximumProjectileCount: number;
-  baseDamage: number;
-  maximumDamage: number;
+  damagePerProjectile: number;
   worldWidth: number;
   worldHeight: number;
   verticalPadding: number;
@@ -40,7 +38,12 @@ export interface UltimateImpactSnapshot {
 export interface UltimateVolleyLaunch {
   absorbedCount: number;
   projectileCount: number;
+}
+
+export interface UltimateProjectileHit {
+  position: Vec2;
   damage: number;
+  targetIndex: number;
 }
 
 interface UltimateProjectileState extends UltimateProjectileSnapshot {
@@ -61,7 +64,6 @@ export class UltimateVolleyModel {
   private lastLaunch: UltimateVolleyLaunch = {
     absorbedCount: 0,
     projectileCount: 0,
-    damage: 0,
   };
 
   constructor(config: UltimateVolleyConfig) {
@@ -73,14 +75,7 @@ export class UltimateVolleyModel {
     const safeAbsorbed = Number.isFinite(absorbedCount)
       ? Math.max(0, Math.floor(absorbedCount))
       : 0;
-    const projectileCount = Math.min(
-      this.config.maximumProjectileCount,
-      this.config.baseProjectileCount + safeAbsorbed,
-    );
-    const damage = Math.min(
-      this.config.maximumDamage,
-      this.config.baseDamage + Math.floor(Math.sqrt(safeAbsorbed)),
-    );
+    const projectileCount = safeAbsorbed;
 
     this.projectiles.length = 0;
     this.impacts.length = 0;
@@ -116,17 +111,18 @@ export class UltimateVolleyModel {
       });
     }
 
-    this.lastLaunch = { absorbedCount: safeAbsorbed, projectileCount, damage };
+    this.lastLaunch = { absorbedCount: safeAbsorbed, projectileCount };
     return { ...this.lastLaunch };
   }
 
   update(
     deltaSeconds: number,
     targets: readonly CircleCollider[] = [],
-  ): void {
+  ): readonly Readonly<UltimateProjectileHit>[] {
     const safeDelta = Number.isFinite(deltaSeconds)
       ? Math.max(0, Math.min(deltaSeconds, 0.25))
       : 0;
+    const hits: UltimateProjectileHit[] = [];
 
     for (const impact of this.impacts) {
       impact.remaining = Math.max(0, impact.remaining - safeDelta);
@@ -177,6 +173,11 @@ export class UltimateVolleyModel {
           remaining: duration,
           duration,
         });
+        hits.push({
+          position: { ...collision.center },
+          damage: Math.max(0, this.config.damagePerProjectile),
+          targetIndex: collision.targetIndex,
+        });
         continue;
       }
 
@@ -184,6 +185,8 @@ export class UltimateVolleyModel {
         projectile.active = false;
       }
     }
+
+    return hits;
   }
 
   getSnapshots(): readonly Readonly<UltimateProjectileSnapshot>[] {
@@ -210,6 +213,12 @@ export class UltimateVolleyModel {
   getLastLaunch(): Readonly<UltimateVolleyLaunch> {
     return { ...this.lastLaunch };
   }
+
+  /** 转场清场：现存玩家大招弹丸与命中特效均不跨阶段保留。 */
+  clearAll(): void {
+    this.projectiles.length = 0;
+    this.impacts.length = 0;
+  }
 }
 
 function clamp(value: number, minimum: number, maximum: number): number {
@@ -221,14 +230,14 @@ function findEarliestCollision(
   end: Vec2,
   radius: number,
   targets: readonly CircleCollider[],
-): ReturnType<typeof sweptCircleCollision> {
-  let earliest: ReturnType<typeof sweptCircleCollision> = null;
+): (SweptCircleCollision & { targetIndex: number }) | null {
+  let earliest: (SweptCircleCollision & { targetIndex: number }) | null = null;
 
-  for (const target of targets) {
-    const collision = sweptCircleCollision(start, end, radius, target);
+  for (let targetIndex = 0; targetIndex < targets.length; targetIndex += 1) {
+    const collision = sweptCircleCollision(start, end, radius, targets[targetIndex]);
 
     if (collision && (!earliest || collision.time < earliest.time)) {
-      earliest = collision;
+      earliest = { ...collision, targetIndex };
     }
   }
 

@@ -66,7 +66,6 @@ export class PrototypeScene extends Phaser.Scene {
   private skillPressRequested = false;
   private skillReleaseRequested = false;
   private absorbedForUltimate = 0;
-  private pendingUltimateDamage = 0;
   private readonly onRestartKey = (): void => {
     if (
       this.playerDamage?.getSnapshot().defeated ||
@@ -121,7 +120,6 @@ export class PrototypeScene extends Phaser.Scene {
     this.skillPressRequested = false;
     this.skillReleaseRequested = false;
     this.absorbedForUltimate = 0;
-    this.pendingUltimateDamage = 0;
     for (const key of INPUT_KEYS.parry) {
       this.input.keyboard?.on(`keydown-${key}`, this.onParryKey);
     }
@@ -239,12 +237,16 @@ export class PrototypeScene extends Phaser.Scene {
       }
     }
 
-    this.ultimateVolley?.update(
+    const ultimateHits = this.ultimateVolley?.update(
       deltaSeconds,
       this.boss?.getSnapshot().defeated
         ? []
         : (this.boss?.getHitColliders() ?? []),
-    );
+    ) ?? [];
+
+    for (const hit of ultimateHits) {
+      this.boss?.takeDamage(hit.damage);
+    }
 
     const damage = this.playerDamage?.getSnapshot();
     const parry = this.playerParry?.getSnapshot();
@@ -499,7 +501,6 @@ export class PrototypeScene extends Phaser.Scene {
       this.absorbedForUltimate = this.bullets.beginAbsorption(
         PLAYER_ABILITY.ultimateAbsorbSeconds,
       ).total;
-      this.pendingUltimateDamage = 0;
     }
 
     if (
@@ -508,16 +509,10 @@ export class PrototypeScene extends Phaser.Scene {
       this.playerMovement
     ) {
       this.bullets?.absorbAll();
-      const launch = this.ultimateVolley.launch(
+      this.ultimateVolley.launch(
         this.playerMovement.getPosition(),
         this.absorbedForUltimate,
       );
-      this.pendingUltimateDamage = launch.damage;
-    }
-
-    if (events.damageRequested && this.pendingUltimateDamage > 0) {
-      this.boss?.takeDamage(this.pendingUltimateDamage);
-      this.pendingUltimateDamage = 0;
     }
   }
 

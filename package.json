@@ -1,6 +1,6 @@
 {
   "name": "song-of-pipa",
-  "version": "0.1.0",
+  "version": "1.0.0-rc.1",
   "private": true,
   "type": "module",
   "scripts": {
@@ -8,8 +8,10 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
+    "test": "npm run test:rig && npm run test:movement && npm run test:combat && npm run test:demo",
     "test:rig": "node --test tests/playerRig.test.ts",
     "test:movement": "node --test tests/playerMovement.test.ts",
+    "test:demo": "node --test tests/demoBossActor.test.ts tests/demoBossArtGeometry.test.ts tests/demoCombatArt.test.ts tests/demoBossPhase1Attack.test.ts tests/demoBossPhase2Attack.test.ts tests/demoBossPhase3Attack.test.ts tests/demoBossPhase4Attack.test.ts tests/demoBossPhase5Attack.test.ts tests/demoBossPhaseController.test.ts tests/demoDisarmArt.test.ts tests/demoDisarmTransition.test.ts tests/demoRocket.test.ts tests/demoSummon.test.ts tests/demoLaser.test.ts tests/demoAmmoBarrel.test.ts tests/demoScrollingBackground.test.ts tests/demoPlayerArtGeometry.test.ts tests/demoRoute.test.ts tests/demoRelease.test.ts",
     "test:combat": "node --test tests/playerDamage.test.ts tests/playerParry.test.ts tests/playerAbility.test.ts tests/collision.test.ts tests/prototypeBullet.test.ts tests/prototypeBoss.test.ts tests/ultimateVolley.test.ts"
   },
   "dependencies": {

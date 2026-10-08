@@ -88,6 +88,15 @@ export class PlayerParryModel {
     }
   }
 
+  /** 进入夺械转场时立即移除反弹圈与其反馈，不制造失败硬直。 */
+  cancelForTransition(): void {
+    this.state = "ready";
+    this.feedback = "none";
+    this.activeRemaining = 0;
+    this.recoveryRemaining = 0;
+    this.feedbackRemaining = 0;
+  }
+
   getSnapshot(): Readonly<PlayerParrySnapshot> {
     const feedbackProgress =
       this.feedback === "none" || this.config.feedbackSeconds <= 0
