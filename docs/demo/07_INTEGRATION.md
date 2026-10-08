@@ -1,6 +1,6 @@
 # 模块 07：Demo 集成验收与发布
 
-状态：D8 本地发布候选已封存，等待同步与 Pages 验证
+状态：D8 发布候选已封存并同步至 `main`，进入 Pages 验证
 对应批次：D8
 
 ## 模块目标
@@ -39,6 +39,7 @@
 - `npm run typecheck`、`npm run build` 与 `git diff --check` 通过；生产包仅保留 Vite 对单个主包超过 500 kB 的非阻断提示。
 - 开发服务器已检查正式根地址、阶段 4、阶段 5 与 `/?prototype=1`；生产预览已检查根地址。各入口标题、场景与资源能正常启动，浏览器控制台无警告或错误。
 - 本轮浏览器检查属于发布烟雾测试，不伪造完整人工通关、长时间 FPS 或外部试玩数据；完整阶段链和资源完整性由自动化模型覆盖，最终画面与手感仍由用户验收。
+- D8 功能与资源发布基线：`a66dd55`（`feat: publish five-stage demo release candidate`）；本记录提交与该基线一并同步至 `origin/main`。
 
 ## 最终验收框架
 
@@ -52,5 +53,5 @@
 
 1. 执行 `npm test`、`npm run typecheck`、`npm run build` 与 `git diff --check`。
 2. 在根地址检查正式模式无调试控件，在 `?demoDebug=1` 检查覆盖层，在五个 `?demoPhase=N` 页面检查阶段资源与运行状态。
-3. 提交完整 Demo 继承工作区并推送 `main` 到原 `origin`。（本地验证已完成，待同步。）
+3. 提交完整 Demo 继承工作区并推送 `main` 到原 `origin`。（已完成。）
 4. 等待 GitHub Actions 完成，检查 Pages 根地址加载 RC1；若远端发布状态不可读取，则明确报告本地推送成功但线上状态待确认。
